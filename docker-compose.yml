@@ -1,0 +1,63 @@
+version: '3.5'
+
+services:
+  db:
+    image: mysql:8.0.22
+    container_name: kipper-db
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ROOT_PASSWORD=hidden
+      - MYSQL_DATABASE=litroft_dev_kipper
+      - MYSQL_USER=litroft
+      - MYSQL_PASSWORD=hidden
+    volumes:
+     - litroftDevKipper:/var/lib/mysql
+    networks:
+      - backendNetwork
+     
+  spring:
+    build:
+      context: ./kipper_api
+      dockerfile: Dockerfile
+    image: marianojs8/kipper-api
+    container_name: kipper-api
+    ports:
+      - 8080:8080
+    environment:
+      - ADDITIONAL_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Xmx1G -Xms128m -XX:MaxMetaspaceSize=128m
+      - PROFILE=dev
+    depends_on: 
+      - db
+    volumes:
+      - ./kipper_api/target/kipper_api.jar:/kipper_api.jar
+    # command: ["java", "-jar", "litroft_api.jar"]
+    networks:
+      - backendNetwork
+      - frontendNetwork
+      
+  angular:
+    build: 
+      context: ./litroft-dev-kipper
+      dockerfile: Dockerfile
+    image: marianojs8/kipper-ui
+    container_name: kipper-ui
+    ports:
+      - 4200:80
+    depends_on:
+      - spring
+    # volumes:
+    #   - ./litroft-dev-kipper/config/nginx.conf:/etc/nginx/nginx.conf
+    #   - ./litroft-dev-kipper/dist/litroft-dev-kipper/browser/:/usr/share/nginx/html
+    networks:
+      - frontendNetwork
+    
+
+volumes:
+  litroftDevKipper:
+  
+networks:
+  backendNetwork:
+  frontendNetwork:
